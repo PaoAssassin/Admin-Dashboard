@@ -4,14 +4,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaChartLine, FaUsers, FaThList } from 'react-icons/fa';
+import { FaChartLine, FaUsers, FaClipboardList } from 'react-icons/fa';
 
 // Define the navigation items
 const navItems = [
   // Icon based on the images provided (Chart, Users, List/Table)
   { href: '/', label: 'Dashboard', icon: FaChartLine },
   { href: '/students', label: 'Students', icon: FaUsers },
-  { href: '/contents', label: 'Contents', icon: FaThList },
+  { href: '/contents', label: 'Contents', icon: FaClipboardList },
 ];
 
 const Sidebar: React.FC = () => {

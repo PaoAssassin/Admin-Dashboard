@@ -1,312 +1,281 @@
-// components/views/AdminDashboard.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { FaFilter, FaAngleDown } from 'react-icons/fa';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, PointElement,
-  LineElement, Title, Tooltip, Legend, Filler
-} from 'chart.js';
-import { MOCK_CONSULTATION_STATS, MOCK_DONUT_DATA, MOCK_ENGAGEMENT_DATA, COLLEGE_LIST } from '../../lib/data'; 
+import { BarChart, LineChart, PieChart } from '@mui/x-charts';
+import { pieArcClasses, ChartsTextStyle } from '@mui/x-charts';
+import { COLLEGE_LIST, DASHBOARD_DATASETS } from '../../lib/data';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Title, Tooltip, Legend, Filler);
-
-// --- 1. INTERNAL UI COMPONENTS ---
-
+// --- Dashboard Card Component ---
 interface DashboardCardProps {
   title?: string;
   children: React.ReactNode;
   headerContent?: React.ReactNode;
-  fullWidth?: boolean;
 }
-const DashboardCard: React.FC<DashboardCardProps> = ({ title, children, headerContent, fullWidth = false }) => {
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, children, headerContent }) => (
+  <div className="bg-white rounded-xl shadow-md p-4 h-full">
+    {(title || headerContent) && (
+      <div className="flex justify-between items-center mb-3 px-2">
+        {title && <h2 className="text-lg font-semibold text-gray-800 text-left">{title}</h2>}
+        {headerContent && <div className="flex-shrink-0">{headerContent}</div>}
+      </div>
+    )}
+    <div className="px-1">{children}</div>
+  </div>
+);
+
+// --- College Dropdown ---
+interface CollegeDropdownProps {
+  selected: string;
+  onChange: (college: string) => void;
+}
+const CollegeDropdown: React.FC<CollegeDropdownProps> = ({ selected, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className={`bg-white rounded-xl shadow-md p-6 ${fullWidth ? 'lg:col-span-3' : ''}`}>
-      {(title || headerContent) && (
-        <div className="flex justify-between items-center mb-4 border-b pb-2">
-          {title && <h2 className="text-lg font-semibold text-gray-800">{title}</h2>}
-          {headerContent}
+    <div className="relative z-20">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center space-x-1 px-3 py-1 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        <span>{selected}</span>
+        <FaAngleDown className={`w-3 h-3 ml-1 transition-transform ${isOpen ? 'rotate-180' : 'rotate-0'}`} />
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-40 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-xl">
+          <div className="py-1">
+            {COLLEGE_LIST.map((college) => (
+              <div
+                key={college}
+                onClick={() => {
+                  onChange(college);
+                  setIsOpen(false);
+                }}
+                className={`px-4 py-2 text-sm cursor-pointer hover:bg-purple-50 hover:text-purple-700 ${
+                  selected === college ? 'bg-purple-100 text-purple-800 font-medium' : 'text-gray-700'
+                }`}
+              >
+                {college}
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      {children}
     </div>
   );
 };
 
-// College Dropdown Component
-const CollegeDropdown: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedCollege, setSelectedCollege] = useState('Select College');
+// --- Time Filter Dropdown (Weekly/Monthly only) ---
+interface TimeFilterDropdownProps {
+  selected: 'Weekly' | 'Monthly';
+  onChange: (time: 'Weekly' | 'Monthly') => void;
+}
+const TimeFilterDropdown: React.FC<TimeFilterDropdownProps> = ({ selected, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const timeOptions: ('Weekly' | 'Monthly')[] = ['Weekly', 'Monthly'];
 
-    const handleSelect = (college: string) => {
-        setSelectedCollege(college);
-        setIsOpen(false);
-        // Placeholder for filtering logic
-        console.log('Selected College:', college); 
-    };
+  return (
+    <div className="relative z-20">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        <FaFilter className="w-3 h-3 text-gray-400 mr-1" />
+        <span className="font-medium ml-1">{selected}</span>
+        <FaAngleDown className={`w-3 h-3 ml-1 transition-transform ${isOpen ? 'rotate-180' : 'rotate-0'}`} />
+      </button>
 
-    return (
-        <div className="relative">
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-1 px-3 py-1 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition duration-150"
-            >
-                <span className="text-sm">{selectedCollege}</span> 
-                <FaAngleDown className={`w-3 h-3 ml-1 transition-transform ${isOpen ? 'rotate-180' : 'rotate-0'}`} />
-            </button>
-            
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 max-h-60 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-xl z-50">
-                    <div className="py-1">
-                        {COLLEGE_LIST.map((college) => (
-                            <div 
-                                key={college}
-                                onClick={() => handleSelect(college)}
-                                className={`px-4 py-2 text-sm cursor-pointer hover:bg-purple-50 hover:text-purple-700 ${
-                                    selectedCollege === college ? 'bg-purple-100 text-purple-800 font-medium' : 'text-gray-700'
-                                }`}
-                            >
-                                {college}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
-// Time Filter Dropdown Component
-const TimeFilterDropdown: React.FC = () => {
-    const timeOptions = ['Daily', 'Weekly', 'Monthly'];
-    const [isOpen, setIsOpen] = useState(false);
-    // Default filter is 'Daily' as requested
-    const [selectedTime, setSelectedTime] = useState('Daily');
-
-    const handleSelect = (time: string) => {
-        setSelectedTime(time);
-        setIsOpen(false);
-        // Placeholder for filter logic
-        console.log('Selected Time Filter:', time); 
-    };
-
-    return (
-        <div className="relative">
-            {/* The main Filter button */}
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition duration-150"
-            >
-                <FaFilter className="w-3 h-3 text-purple-600 mr-1" /> 
-                Filter: <span className="font-medium ml-1">{selectedTime}</span>
-            </button>
-            
-            {/* Dropdown Menu */}
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-lg shadow-xl z-50">
-                    <div className="py-1">
-                        {timeOptions.map((time) => (
-                            <div 
-                                key={time}
-                                onClick={() => handleSelect(time)}
-                                className={`px-4 py-2 text-sm cursor-pointer hover:bg-purple-50 hover:text-purple-700 ${
-                                    selectedTime === time ? 'bg-purple-100 text-purple-800 font-medium' : 'text-gray-700'
-                                }`}
-                            >
-                                {time}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
-const BarChartComponent: React.FC = () => {
-  const data = {
-    labels: MOCK_CONSULTATION_STATS.map(s => s.day),
-    datasets: [{
-        data: MOCK_CONSULTATION_STATS.map(s => s.count),
-        backgroundColor: '#4c1d95', 
-        borderRadius: 8,
-        barThickness: 30, 
-        maxBarThickness: 40,
-      },
-    ],
-  };
-  const options = { 
-    responsive: true, 
-    maintainAspectRatio: false, 
-    plugins: { legend: { display: false } }, 
-    scales: { 
-      y: { 
-        beginAtZero: true, 
-        grid: { color: '#e5e7eb' },
-        ticks: { 
-            stepSize: 200, 
-            min: 0,
-            max: 1200,
-        }, 
-      }, 
-      x: { 
-        grid: { display: false } 
-      } 
-    } 
-  };
-  return <Bar data={data} options={options} />;
-};
-
-
-const DonutChartComponent: React.FC = () => {
-    const data = {
-        labels: MOCK_DONUT_DATA.labels,
-        datasets: [{
-            data: MOCK_DONUT_DATA.data,
-            backgroundColor: [
-                '#0a0833', 
-                '#4c1d95', 
-                '#2dd4bf', 
-                '#f97316', 
-            ], 
-            hoverOffset: 4,
-            borderWidth: 0, 
-        }],
-      };
-      const options = { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } };
-    
-      return (
-        <div className="relative h-64 w-full flex flex-col items-center justify-center">
-          <div className="relative w-56 h-56 flex items-center justify-center"> 
-            <Doughnut data={data} options={options} />
-            <div className="absolute text-4xl font-bold text-gray-800">
-              20
-            </div>
-          </div>
-          
-          {/* Custom Legend */}
-          <div className="mt-4 text-xs flex flex-wrap justify-center gap-x-4 gap-y-2">
-            {MOCK_DONUT_DATA.labels.map((label, index) => (
-                <span key={index} className="inline-flex items-center">
-                    <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: data.datasets[0].backgroundColor[index] }}></span>
-                    {label === 'Tuning' ? 'Thriving' : label} 
-                </span>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-lg shadow-xl">
+          <div className="py-1">
+            {timeOptions.map((time) => (
+              <div
+                key={time}
+                onClick={() => {
+                  onChange(time);
+                  setIsOpen(false);
+                }}
+                className={`px-4 py-2 text-sm cursor-pointer hover:bg-purple-50 hover:text-purple-700 ${
+                  selected === time ? 'bg-purple-100 text-purple-800 font-medium' : 'text-gray-700'
+                }`}
+              >
+                {time}
+              </div>
             ))}
           </div>
         </div>
-      );
-}; // Correctly terminated
-
-
-const LineChartComponent: React.FC = () => {
-  const data = {
-    labels: MOCK_ENGAGEMENT_DATA.map(d => d.label),
-    datasets: [{
-        label: 'Students',
-        data: MOCK_ENGAGEMENT_DATA.map(d => d.value),
-        borderColor: '#4c1d95', 
-        backgroundColor: 'rgba(76, 29, 149, 0.2)',
-        fill: 'start', 
-        tension: 0.4, 
-        
-        pointRadius: 0, 
-        pointHitRadius: 10,
-        pointHoverRadius: 8,
-        pointHoverBackgroundColor: '#4c1d95', 
-        pointHoverBorderColor: 'white',
-        pointHoverBorderWidth: 2,
-    }],
-  };
-  
-  const options = { 
-    responsive: true, 
-    maintainAspectRatio: false, 
-    plugins: { 
-      legend: { display: false },
-      tooltip: {
-        enabled: true,
-        backgroundColor: '#4c1d95', 
-        titleColor: 'white',
-        bodyColor: 'white',
-        padding: 10,
-        cornerRadius: 4,
-        displayColors: false, 
-        caretSize: 8,
-        caretPadding: 10,
-        
-        callbacks: {
-            title: () => '', 
-            label: function(context: any) {
-                return `${context.parsed.y} Students`;
-            }
-        },
-      }
-    }, 
-    scales: { 
-      y: { 
-        beginAtZero: true, 
-        grid: { color: '#e5e7eb' },
-        ticks: { 
-            stepSize: 200, 
-            min: 0,
-            max: 1200,
-        }, 
-      }, 
-      x: { 
-        grid: { display: false } 
-      } 
-    } 
-  };
-  return <Line data={data} options={options} />;
+      )}
+    </div>
+  );
 };
 
+// --- Bar Chart Component ---
+interface BarChartComponentProps {
+  data: { day?: string; month?: string; count: number }[];
+}
+const BarChartComponent: React.FC<BarChartComponentProps> = ({ data }) => {
+  const chartData = data.map((item) => item.count);
+  const labels = data.map((item) => item.day ?? item.month ?? '');
 
-// --- 2. MAIN EXPORTED VIEW COMPONENT ---
-
-const AdminDashboard: React.FC = () => {
   return (
-    <div className="pb-6">
-      <div className="mb-8">
-        <div className="text-sm text-gray-500 mb-1">Admin / Dashboard</div>
-        <h1 className="text-3xl font-bold text-gray-800">Welcome, Sir John Doe!</h1>
+    <BarChart
+      height={340}
+      xAxis={[{ scaleType: 'band', data: labels, label: 'Time' }]}
+      yAxis={[{ min: 0, max: Math.max(...chartData) + 200, label: 'Count' }]}
+      series={[{ data: chartData, label: 'Consultations', color: '#4c1d95' }]}
+      slotProps={{
+        bar: { rx: 8 },
+      }}
+    />
+  );
+};
+
+// --- Donut Chart Component ---
+interface DonutChartComponentProps {
+  data: { labels: string[]; data: number[] };
+}
+const DonutChartComponent: React.FC<DonutChartComponentProps> = ({ data }) => {
+  const colors = ['#0a0833', '#4c1d95', '#2dd4bf', '#f97316'];
+  const chartData = data.labels.map((label, index) => ({
+    id: index,
+    label,
+    value: data.data[index],
+    color: colors[index % colors.length],
+  }));
+  const total = data.data.reduce((acc, val) => acc + val, 0);
+
+  return (
+    <div className="flex flex-col items-center justify-center relative group">
+      <PieChart
+        height={300}
+        width={450}
+        series={[
+          {
+            data: chartData,
+            innerRadius: 100,
+            outerRadius: 120,
+            paddingAngle: 4,
+            cornerRadius: 1,
+            highlightScope: { faded: 'global', highlighted: 'item' },
+            faded: { innerRadius: 100, additionalRadius: 10 },
+          },
+        ]}
+        slotProps={{
+          legend: { hidden: true },
+        }}
+        sx={{
+          [`& .${pieArcClasses.faded}`]: { fill: '#e5e7eb' },
+          '& .MuiChartsArcLabel-root': {
+            opacity: 0,
+            transition: 'opacity 0.18s ease',
+            fill: '#fff',
+            fontWeight: 600,
+          },
+          '.MuiChartsArc-root:hover .MuiChartsArcLabel-root': { opacity: 1 },
+        }}
+      />
+
+      {/* Center label */}
+      <div className="absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 text-4xl font-bold text-gray-800">
+        {total}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        
-        {/* CGCS Consultation Statistics (Bar Chart) - WIDER (2/3 width) */}
-        <div className="lg:col-span-2"> 
-            <DashboardCard title="CGCS Consultation Statistics">
-                <div className="h-64">
-                    <BarChartComponent />
-                </div>
-            </DashboardCard>
-        </div>
+      {/* Custom legend */}
+      <div className="mt-4 flex flex-wrap justify-center gap-4">
+        {chartData.map((item) => (
+          <div key={item.id} className="flex items-center gap-2">
+            <span
+              aria-hidden
+              style={{
+                backgroundColor: item.color,
+                width: 14,
+                height: 14,
+                display: 'inline-block',
+                borderRadius: 1,
+                boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)',
+              }}
+            />
+            <span className="text-sm text-gray-700">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-        {/* Students Classification (Donut Chart) - NARROWER (1/3 width) */}
-        <div className="lg:col-span-1 relative">
-            {/* Filters positioned ABSOLUTELY to sit above the card */}
-            <div className="absolute -top-14 right-0 flex space-x-2 z-10">
-                <CollegeDropdown /> 
-                
-                {/* Implemented Time Filter Dropdown */}
-                <TimeFilterDropdown />
+// --- Line Chart Component ---
+interface LineChartComponentProps {
+  data: { label: string; value: number }[];
+}
+const LineChartComponent: React.FC<LineChartComponentProps> = ({ data }) => {
+  const labels = data.map((d) => d.label);
+  const values = data.map((d) => d.value);
+  const axisTextStyle: ChartsTextStyle = { fill: '#4b5563', fontSize: 12 };
+
+  return (
+    <LineChart
+      height={256}
+      xAxis={[{ data: labels, scaleType: 'point', tickLabelStyle: axisTextStyle }]}
+      yAxis={[{ min: 0, max: Math.max(...values) + 200, tickLabelStyle: axisTextStyle }]}
+      series={[
+        {
+          data: values,
+          area: true,
+          showMark: false,
+          color: '#4c1d95',
+          label: 'Engagement',
+        },
+      ]}
+    />
+  );
+};
+
+// --- AdminDashboard ---
+const AdminDashboard: React.FC = () => {
+  const [selectedCollege, setSelectedCollege] = useState<string>(COLLEGE_LIST[0]);
+  const [selectedTime, setSelectedTime] = useState<'Weekly' | 'Monthly'>('Weekly');
+
+  // Fetch filtered datasets
+  const dataset = DASHBOARD_DATASETS[selectedCollege][selectedTime];
+
+  return (
+    <div className="pt-1">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <p className="text-sm text-gray-500 mb-1">Admin / Dashboard</p>
+          <h1 className="text-3xl font-bold text-purple-700">Welcome, Sir John Doe!</h1>
+        </div>
+        <div className="flex space-x-3 mt-15">
+          <CollegeDropdown selected={selectedCollege} onChange={setSelectedCollege} />
+          <TimeFilterDropdown selected={selectedTime} onChange={setSelectedTime} />
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+        <div className="lg:col-span-3 h-[450px]">
+          <DashboardCard title="CGCS Consultation Statistics">
+            <div className="h-full flex items-center justify-center pt-4">
+              <BarChartComponent data={dataset.consultation} />
             </div>
-            
-            <DashboardCard title="Students Classification">
-              <DonutChartComponent />
-            </DashboardCard>
+          </DashboardCard>
         </div>
 
-        {/* Student Engagement (Line Chart) - Takes full width on the next row */}
-        <div className="lg:col-span-3">
-            <DashboardCard title="Student Engagement" fullWidth>
-              <div className="h-64">
-                <LineChartComponent />
-              </div>
-            </DashboardCard>
+        <div className="lg:col-span-2 h-[450px]">
+          <DashboardCard title="Students Classification">
+            <div className="h-full flex items-center justify-center">
+              <DonutChartComponent data={dataset.donut} />
+            </div>
+          </DashboardCard>
+        </div>
+
+        <div className="lg:col-span-5">
+          <DashboardCard title="Student Engagement">
+            <div className="h-[256px]">
+              <LineChartComponent data={dataset.engagement} />
+            </div>
+          </DashboardCard>
         </div>
       </div>
     </div>
